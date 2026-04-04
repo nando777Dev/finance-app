@@ -1,4 +1,18 @@
 /node_modules
 /vendor
 .env
+
+# Laravel
+/backend/vendor
+/backend/node_modules
+/backend/.env
+
+# Vue
+/frontend/node_modules
+
+# Docker
 docker/mysql/data
+
+# Sistema
+.DS_Store
+Thumbs.db

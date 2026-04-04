@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: finance_app
+    volumes:
+      - ./backend:/var/www
+    working_dir: /var/www
+    depends_on:
+      - db
+
+  nginx:
+    image: nginx:latest
+    container_name: finance_nginx
+    ports:
+      - "8000:80"
+    volumes:
+      - ./backend:/var/www
+      - ./docker/nginx:/etc/nginx/conf.d
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    container_name: finance_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: finance
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  node:
+    image: node:20
+    container_name: finance_node
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5173:5173"
+    command: tail -f /dev/null
+
+volumes:
+  db_data:
