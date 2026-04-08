@@ -13,6 +13,10 @@ class Transaction extends Model
     protected $fillable = [
         'user_id',
         'category_id',
+        'parent_id',
+        'installment_number',
+        'installment_total',
+        'is_credit_card',
         'description',
         'amount',
         'date',
@@ -34,5 +38,15 @@ class Transaction extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany(self::class, 'parent_id');
     }
 }
