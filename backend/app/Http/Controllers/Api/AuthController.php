@@ -44,14 +44,17 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'is_active' => false,
+            'approved_at' => null,
         ]);
 
-        $token = $user->createToken('auth_token')->plainTextToken;
-
         return response()->json([
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-            'user' => $user,
+            'message' => 'Cadastro realizado com sucesso. Aguarde aprovação do administrador.',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
         ], 201);
     }
 
@@ -101,6 +104,12 @@ class AuthController extends Controller
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['As credenciais fornecidas estão incorretas.'],
+            ]);
+        }
+
+        if (! $user->is_admin && $user->approved_at === null) {
+            throw ValidationException::withMessages([
+                'email' => ['Aguarde enquanto um administrador faz a liberação do seu acesso.'],
             ]);
         }
 

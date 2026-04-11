@@ -22,6 +22,15 @@ class TransactionController extends Controller
         summary: 'List all transactions of the authenticated user',
         tags: ['Transactions'],
         security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(
+                name: 'grouped',
+                in: 'query',
+                required: false,
+                schema: new OA\Schema(type: 'boolean'),
+                description: 'Quando true, retorna somente transações pai (parent_id null) com children carregadas (parcelas).'
+            ),
+        ],
         responses: [
             new OA\Response(response: 200, description: 'List of transactions'),
             new OA\Response(response: 401, description: 'Unauthenticated'),
@@ -29,6 +38,10 @@ class TransactionController extends Controller
     )]
     public function index(Request $request)
     {
+        if ($request->boolean('grouped')) {
+            return response()->json($this->transactions->forUserGrouped($request->user()->id));
+        }
+
         return response()->json($this->transactions->forUser($request->user()->id));
     }
 
@@ -74,6 +87,51 @@ class TransactionController extends Controller
         ]));
 
         return response()->json($transaction->load('category'), 201);
+    }
+
+    #[OA\Post(
+        path: '/api/transactions/installments',
+        summary: 'Create an installment transaction (creates N monthly transactions)',
+        tags: ['Transactions'],
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['description', 'total_amount', 'first_date', 'installments', 'type'],
+                properties: [
+                    new OA\Property(property: 'category_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'description', type: 'string', example: 'Compra no cartão (parcelada)'),
+                    new OA\Property(property: 'total_amount', type: 'number', format: 'float', example: 1200.00),
+                    new OA\Property(property: 'first_date', type: 'string', format: 'date', example: '2026-05-10'),
+                    new OA\Property(property: 'installments', type: 'integer', example: 12),
+                    new OA\Property(property: 'type', type: 'string', enum: ['credito', 'debito'], example: 'debito'),
+                    new OA\Property(property: 'status', type: 'string', enum: ['pago', 'pendente'], example: 'pendente'),
+                    new OA\Property(property: 'observations', type: 'string', example: 'Parcela automática todo mês'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Installment series created'),
+            new OA\Response(response: 422, description: 'Validation error'),
+        ]
+    )]
+    public function storeInstallments(Request $request)
+    {
+        $validated = $request->validate([
+            'category_id' => 'nullable|exists:categories,id',
+            'description' => 'required|string|max:255',
+            'total_amount' => 'required|numeric|min:0.01',
+            'first_date' => 'required|date',
+            'installments' => 'required|integer|min:2|max:360',
+            'type' => 'required|in:credito,debito',
+            'status' => 'sometimes|in:pago,pendente',
+            'observations' => 'nullable|string',
+            'is_credit_card' => 'sometimes|boolean',
+        ]);
+
+        $parent = $this->transactions->createInstallmentParent($request->user()->id, $validated);
+
+        return response()->json($parent, 201);
     }
 
     #[OA\Get(

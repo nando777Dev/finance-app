@@ -20,6 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('categories', CategoryController::class);
     Route::apiResource('transactions', TransactionController::class);
+    Route::post('transactions/installments', [TransactionController::class, 'storeInstallments']);
     Route::middleware('admin')->prefix('admin')->group(function () {
         Route::get('/users', [AdminUserController::class, 'index']);
         Route::patch('/users/{user}/activate', [AdminUserController::class, 'activate']);
