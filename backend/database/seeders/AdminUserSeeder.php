@@ -25,6 +25,7 @@ class AdminUserSeeder extends Seeder
         if (! $user->is_admin) {
             $user->is_admin = true;
             $user->is_active = true;
+            $user->approved_at = now();
             $user->save();
         }
     }

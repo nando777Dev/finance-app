@@ -12,7 +12,11 @@ class AdminMiddleware
     {
         $user = $request->user();
         if (! $user || ! $user->is_admin) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+            abort(403);
         }
 
         return $next($request);
